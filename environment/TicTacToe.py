@@ -5,24 +5,45 @@ class TicTacToe:
     def __init__(self):
         self.board = np.zeros((3, 3), dtype="int")
         self.terminal = False
+        self.to_move = 1
 
     def restart(self):
         self.board = np.zeros((3, 3), dtype="int")
         self.terminal = False
+        self.to_move = 2
 
     def is_valid(self, action):
-        if self.board[int(np.floor(action / 3))][action % 3] != 0:
+        if self.getState()[action] != 0:
             return False
         else:
             return True
+
+    @staticmethod
+    def valid_moves(state):
+        val_moves = []
+        for i in range(9):
+            if state[i] == 0: val_moves.append(i)
+        return val_moves
+
+    @staticmethod
+    def invalid_moves(state):
+        inval_moves = []
+        for i in range(9):
+            if state[i] != 0: inval_moves.append(i)
+        return inval_moves
+
+    def invert_player(self):
+        if self.to_move == 1: self.to_move=2
+        else : self.to_move = 1
 
     def invert_board(self):
         for row in range(3):
             for col in range(3):
                 if (self.board[row][col] == 1):
-                    self.board[row][col] = 2
-                elif (self.board[row][col] == 2):
+                    self.board[row][col] = -1
+                elif (self.board[row][col] == -1):
                     self.board[row][col] = 1
+        self.invert_player()
 
     def step(self, action):
         """
@@ -91,6 +112,8 @@ class TicTacToe:
         if terminal == 1:
             self.terminal = True
 
+        self.invert_player()
+
         return 0
 
     def render(self):
@@ -114,4 +137,5 @@ class TicTacToe:
         for i in range(3):
             for j in range(3):
                 state.append(self.board[i][j])
+
         return state

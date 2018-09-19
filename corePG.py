@@ -1,4 +1,5 @@
 from agent.DQNAgent import DQNAgent
+from agent.PolicyAgent import PolicyAgent
 from environment.TicTacToe import TicTacToe
 from random import randint
 from agent.RandomPlayer import RandomPlayer
@@ -22,7 +23,7 @@ def play_quick_game(agent, env):
         # one episode
         while True:
             if episode_len % 2 == r:
-                action = agent.act(state, clean=True)
+                action, _ = agent.act(state, clean=True)
             else:
                 action = player.act(state)
 
@@ -58,7 +59,7 @@ def main():
 
     log_actions_freq = 400
 
-    agent = DQNAgent(1, state_dim, action_dim)
+    agent = PolicyAgent(1, state_dim, action_dim)
 
     for e in range(agent.episodes):
         agent.reset()
@@ -70,7 +71,9 @@ def main():
         while True:
             #env.render()
 
-            action = agent.act(state)
+            action, _ = agent.act(state)
+            #print(norm_act_prob)
+
             actions_played.append(action)
 
             reward = env.step(action)
@@ -79,8 +82,7 @@ def main():
             next_state = env.getState()
             done = env.terminal
 
-            #agent.update_td(state, action, reward, next_state, done)
-            agent.remember_move(state, action, reward, next_state, done)
+            agent.remember_move(state, action, reward)
 
             state = next_state
 
@@ -90,27 +92,25 @@ def main():
                     whowon = reward
                 else:
                     whowon = reward * -1
-
+                '''
                 if agent.loger_mode:
                     with open(agent.log_path, "a") as log_file:
-                        log_file.write("episode: {}/{}, episodelen: {}, whowon: {}, e: {:.2},\n"
+                        log_file.write("episode: {}/{}, episodelen: {}, whowon: {},\n"
                                        "actions player: {}"
-                        .format(e, agent.episodes, episode_len, whowon, agent.epsilon, actions_played))
+                        .format(e, agent.episodes, episode_len, whowon, actions_played))
                 else:
-                    print("episode: {}/{}, episodelen: {}, whowon: {}, e: {:.2},\n"
+                    print("episode: {}/{}, episodelen: {}, whowon: {}, \n"
                                        "actions player: {}"
-                        .format(e, agent.episodes, episode_len, whowon, agent.epsilon, actions_played))
+                        .format(e, agent.episodes, episode_len, whowon, actions_played))
+                '''
 
-                if agent.epsilon > agent.epsilon_min:
-                    agent.epsilon *= agent.epsilon_decay
                 if e % agent.save_model_freq == 0:
                     agent.model.save(agent.model_path+str(e/agent.save_model_freq))
 
                 agent.remember_game()
 
-                if e % agent.batch_freq == 0 and e > 5000:
+                if e % agent.batch_freq == 0 and e > 4000:
                     agent.update_batch()
-                    print("Agent updated")
 
                 if e % 100 == 0:
                     result = play_quick_game(agent, env)
