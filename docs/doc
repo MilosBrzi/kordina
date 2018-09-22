@@ -1,0 +1,26 @@
+core.py - Training network.
+          Choose which network to train
+          by correcting the 3rd instructing
+          in main function.
+          2 posibilities:
+          agent = DQNAgent(1, state_dim, action_dim) Deep Q Learning
+          agent = PGAgent(1, state_dim, action_dim) Policy Gradient
+
+Output of core.py is (dqn_ or pg_) log.txt placed in logs folder and model.
+While training, network is being periodically evaluated by playing vs RandomPlayer
+and final result (number of games that NeuralNetwork has lost) is outputed to log.txt
+Model is also being periodically saved in models folder.
+
+testing.py -
+HumanPlayer (user) playing vs trained Agent.
+
+1. Choose network same way as in core.py
+2. Choose model by correcting number in
+instruction: self.trained_model_path = self.model_path+"10.0"
+located in __init__ method of choosen agent
+Number represents version of a model inside models folder
+3. User can play by inputing numbers 1-9 where each number
+coresponds to field in TicTacToe. (1 is bottom left field 5 is center etc.)
+User is always X and CPU is O
+
+

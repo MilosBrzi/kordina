@@ -1,19 +1,17 @@
 from agent.DQNAgent import DQNAgent
-from agent.PolicyAgent import PolicyAgent
-from agent.Player import Player
+from agent.PGAgent import PGAgent
+from agent.HumanPlayer import HumanPlayer
 from environment.TicTacToe import TicTacToe
+import random
 
 def main():
     env = TicTacToe()
 
-    state_size = 19683
     state_dim = 9
     action_dim = 9
 
-    log_actions_freq = 400
-
-    agent = PolicyAgent(0, state_dim, action_dim)
-    player = Player(state_dim, action_dim)
+    agent = DQNAgent(0, state_dim, action_dim)
+    player = HumanPlayer(state_dim, action_dim)
 
     for e in range(agent.episodes):
         agent.reset()
@@ -21,12 +19,17 @@ def main():
         state = env.getState()
         episode_len = 0
 
-        #one episode
+        r = random.uniform(0, 1)
+        if r > 0.5:
+            r = 0
+        else:
+            r = 1
+        # one episode
         while True:
             env.render()
 
-            if episode_len % 2 == 0:
-                action, _= agent.act(state, clean = True)
+            if episode_len % 2 == r:
+                action = agent.act(state, clean=True)
             else:
                 action = player.act(state)
 

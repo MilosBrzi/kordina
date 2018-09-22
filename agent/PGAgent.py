@@ -3,15 +3,14 @@ from environment.TicTacToe import TicTacToe
 from collections import deque
 from keras.models import Sequential
 from keras.layers import *
-from keras.optimizers import Adam
 from keras.optimizers import RMSprop
+from agent.Agent import Agent
 
-class PolicyAgent:
+class PGAgent(Agent):
     #mode == 1 Training
     #mode == 0 Testing
     def __init__(self, mode, state_dim, action_dim):
-        self.state_dim = state_dim
-        self.action_dim = action_dim
+        super().__init__(state_dim, action_dim, mode)
         self.episodes = 1000001
         self.gamma = 0.5  # discount rate
 
@@ -23,12 +22,10 @@ class PolicyAgent:
         self.batch_size = 16384
         self.batch_freq = 512
 
-        self.model_path = "models/DQN_model_e_"
+        self.model_path = "models/PG_model_e_"
         self.save_model_freq = 5000
-        self.log_path = "logs/dqn_log.txt"
+        self.log_path = "logs/pg_log.txt"
         self.loger_mode = False
-
-        self.act_log_path = "logs/act_log.txt"
 
         self.model = self._build_model()
         if mode == 0:
@@ -36,7 +33,7 @@ class PolicyAgent:
             self.load(self.trained_model_path)
 
     def _build_model(self):
-        # Neural Net for Deep-Q learning Model
+        # Neural Net for PG learning Model
         model = Sequential()
         model.add(Dense(512, input_dim=self.state_dim, activation='relu', kernel_initializer ='he_uniform'))
         model.add(Dense(512, activation='relu', kernel_initializer ='he_uniform'))
@@ -49,7 +46,6 @@ class PolicyAgent:
 
         return model
 
-
     def best_action(self, state, act_prob, clean = False):
         possible_actions = TicTacToe.valid_moves(state)
 
@@ -61,17 +57,18 @@ class PolicyAgent:
             for i in possible_actions:
                 probability_of_actions.append(act_prob[i])
 
-            probability_of_actions = probability_of_actions / np.sum(probability_of_actions)
-
-            act_index = np.random.choice(possible_actions, 1, p=probability_of_actions)
-            return act_index[0]
+            #probability_of_actions = probability_of_actions / np.sum(probability_of_actions)
+            ind =  probability_of_actions.index(max(probability_of_actions))
+            return possible_actions[ind]
+            #act_index = np.random.choice(possible_actions, 1, p=probability_of_actions)
+            #return act_index[0]
 
     def act(self, state, clean=False):
         act_prob = self.model.predict(np.expand_dims(np.asarray(state), 0), batch_size=1)
         act_prob = act_prob[0]
 
         act_index = self.best_action(state, act_prob, clean)
-        return act_index, act_prob
+        return act_index
 
     def load(self, name):
         self.model.load_weights(name)
@@ -79,7 +76,7 @@ class PolicyAgent:
     def save(self, name):
         self.model.save_weights(name)
 
-    def remember_move(self, state, action, reward):
+    def remember_move(self, state, action, reward, next_state, done):
         one_hot_action = np.zeros([self.action_dim])
         one_hot_action[action] = 1
 
@@ -133,14 +130,3 @@ class PolicyAgent:
                 flip = not flip
                 if flip:
                     disc_reward *= self.gamma
-
-    @staticmethod
-    def fix_probability(actions_prob):
-        sum_probs = sum(actions_prob)
-        new_actions_prob = []
-        for i in range(len(actions_prob)):
-            if(sum_probs == 0):
-                print('IMA NULA')
-                print(actions_prob)
-            new_actions_prob.append(actions_prob[i]/sum_probs)
-        return new_actions_prob

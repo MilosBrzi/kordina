@@ -8,14 +8,11 @@ from collections import deque
 from keras.models import Sequential
 from keras.layers import *
 from keras.optimizers import Adam
+from agent.Agent import Agent
 
-
-class DQNAgent:
-    #mode == 1 Training
-    #mode == 0 Testing
+class DQNAgent(Agent):
     def __init__(self, mode, state_dim, action_dim):
-        self.state_dim = state_dim
-        self.action_dim = action_dim
+        super().__init__(state_dim, action_dim, mode)
         self.episodes = 500001
         self.gamma = 0.3  # discount rate
         if mode == 1:
@@ -24,7 +21,7 @@ class DQNAgent:
 
         self.epsilon_min = 0.8
         self.epsilon_decay = 0.99998
-        self.learning_rate = 0.0005
+        self.learning_rate = 0.00001
 
         self.one_game_memory = deque(maxlen=9)
 
@@ -41,7 +38,7 @@ class DQNAgent:
 
         self.model = self._build_model()
         if mode == 0:
-            self.trained_model_path = self.model_path+"100.0"
+            self.trained_model_path = self.model_path+"10.0"
             self.load(self.trained_model_path)
 
     def _build_model(self):
@@ -57,42 +54,10 @@ class DQNAgent:
 
         return model
 
-
-    def best_action(self, state, act_values):
-        max_index = 0
-        max_value = 0
-
-        for i in range(9):
-            if state[i] == 0:
-                max_value = act_values[i]
-                break
-
-        for i in range(9):
-            if state[i] == 0:
-                if act_values[i] >= max_value:
-                    max_value = act_values[i]
-                    max_index = i
-
-        return max_index, max_value
-
     def best_action_prediction(self, state):
         act_values = self.model.predict(np.expand_dims(np.asarray(state), 0), batch_size=1)
         act_values = act_values[0]
-
         return self.best_action(state, act_values)
-
-    def best_action_mb_prediction(self, state_mb):
-        act_values_mb = self.model.predict(state_mb, batch_size=self.batch_size)
-        max_indexes = []
-        max_values = []
-        for i in range(self.batch_size):
-            state = state_mb[i]
-            act_values = act_values_mb[i]
-            max_index, max_value = self.best_action(state, act_values)
-            max_indexes.append(max_index)
-            max_values.append(max_value)
-
-        return max_indexes, max_values
 
     def act(self, state, clean=False):
         if np.random.rand() <= self.epsilon and not clean:
@@ -124,13 +89,6 @@ class DQNAgent:
     def reset(self):
         self.one_game_memory.clear()
 
-    #def update_game(self):
-    #    self.calculate_reward()#
-    #
-    #    for i in reversed(range(len(self.one_game_memory))):
-    #        state, action, reward, state_next, done = self.one_game_memory[i]
-    #        self.update_single(state, action, reward, state_next, done)
-
     def update_batch(self):
         minibatch = random.sample(self.batching_memory, self.batch_size)
 
@@ -142,7 +100,29 @@ class DQNAgent:
         state_next_mb = np.asarray(state_next_mb)
         dones = [mb[4] for mb in minibatch]
 
-        self.update_mb(state_mb, actions, rewards, state_next_mb, dones)
+        targets = rewards
+
+        act_values_mb = self.model.predict(state_next_mb, batch_size=self.batch_size)
+
+        act_values = []
+        for i in range(self.batch_size):
+            state = state_next_mb[i]
+            act_value = act_values_mb[i]
+            max_index, max_value = self.best_action(state, act_value)
+            act_values.append(max_value)
+
+        for i in range(self.batch_size):
+            if not dones[i]:
+                targets[i] = rewards[i] + act_values[i]
+
+        targets_f = self.model.predict(state_mb)
+
+        for i in range(self.batch_size):
+            targets_f[i][actions[i]] = targets[i]
+            for inv_index in TicTacToe.invalid_moves(state_mb[i]):
+                targets_f[i][inv_index] = -1
+
+        self.model.fit(state_mb, targets_f, batch_size=self.batch_size, epochs=1, verbose=0)
 
     def calculate_reward(self):
         reward = self.one_game_memory[len(self.one_game_memory) - 1][2]
@@ -154,41 +134,3 @@ class DQNAgent:
             flip = not flip
             if flip:
                 reward *= self.gamma
-
-    def update_single(self, state, action, reward, state_next, done):
-        target = reward
-        if not done:
-            act_index, act_value = self.best_action_prediction(state_next)
-            target = reward + act_value
-
-        target_f = self.model.predict(np.expand_dims(np.asarray(state), 0))
-
-        target_f[0][action] = target
-        for inv_index in TicTacToe.invalid_moves(state):
-            target_f[0][inv_index] = -1
-        self.model.fit(np.expand_dims(np.asarray(state), 0), target_f, epochs=1, verbose=0)
-
-    def update_mb(self, state_mb, actions, rewards, state_next_mb, dones):
-        targets = rewards
-
-        act_indexes, act_values = self.best_action_mb_prediction(state_next_mb)
-        for i in range(self.batch_size):
-            if not dones[i]:
-                targets[i] = rewards[i] + act_values[i]
-
-        targets_f = self.model.predict(state_mb)
-        debug_before = targets_f.copy()
-        for i in range(self.batch_size):
-            targets_f[i][actions[i]] = targets[i]
-            for inv_index in TicTacToe.invalid_moves(state_mb[i]):
-                targets_f[i][inv_index] = -1
-
-        self.model.fit(state_mb, targets_f, batch_size=self.batch_size, epochs=1, verbose=0)
-        new_act_vals = self.model.predict(state_mb)
-        z = 2
-        z += 1
-        # if target_mode == True:
-        #    next_predicted_actions = self.fixed_model.predict(network_next_mini_batch)
-        # else:
-        #    next_predicted_actions = self.model.predict(network_next_mini_batch)
-
