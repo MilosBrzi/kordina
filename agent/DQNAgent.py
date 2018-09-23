@@ -1,8 +1,5 @@
 import random
-import logging
-import numpy as np
-import matplotlib.pyplot as plt
-import tensorflow as tf
+from keras.backend import eval
 from environment.TicTacToe import TicTacToe
 from collections import deque
 from keras.models import Sequential
@@ -13,21 +10,19 @@ from agent.Agent import Agent
 class DQNAgent(Agent):
     def __init__(self, mode, state_dim, action_dim):
         super().__init__(state_dim, action_dim, mode)
-        self.episodes = 500001
-        self.gamma = 0.3  # discount rate
+        self.episodes = 200001
+        self.gamma = 0.5  # discount rate
         if mode == 1:
             self.epsilon = 1.00  # exploration rate
         else: self.epsilon = 0
 
-        self.epsilon_min = 0.8
-        self.epsilon_decay = 0.99998
-        self.learning_rate = 0.00001
+        self.learning_rate = 0.00002
 
         self.one_game_memory = deque(maxlen=9)
 
         self.batching_memory = deque(maxlen=50000)
-        self.batch_size = 512
-        self.batch_freq = 16
+        self.batch_size = 1024
+        self.batch_freq = 64
 
         self.model_path = "models/DQN_model_e_"
         self.save_model_freq = 5000
@@ -38,7 +33,7 @@ class DQNAgent(Agent):
 
         self.model = self._build_model()
         if mode == 0:
-            self.trained_model_path = self.model_path+"10.0"
+            self.trained_model_path = self.model_path+"Alpha"
             self.load(self.trained_model_path)
 
     def _build_model(self):
@@ -49,7 +44,7 @@ class DQNAgent(Agent):
         model.add(Dense(128, activation='relu'))
         model.add(Dense(self.action_dim, activation='linear'))
         model.compile(loss='mse',
-                      optimizer=Adam(lr=self.learning_rate))
+                      optimizer=Adam(lr=self.learning_rate, decay=1e-11))
         model.summary()
 
         return model
@@ -67,7 +62,6 @@ class DQNAgent(Agent):
 
             rand_index = random.randrange(len(indexes))
             return indexes[rand_index]
-
         else:
             act_index, act_value = self.best_action_prediction(state)
             return act_index
@@ -108,6 +102,7 @@ class DQNAgent(Agent):
         for i in range(self.batch_size):
             state = state_next_mb[i]
             act_value = act_values_mb[i]
+            #Greedy SARSAMAX (Q-learning)
             max_index, max_value = self.best_action(state, act_value)
             act_values.append(max_value)
 

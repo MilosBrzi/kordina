@@ -9,7 +9,7 @@ def play_quick_game(agent, env):
     player = RandomPlayer(9,9)
     result = 0
     num_of_agent_lost_games = 0
-    for i in range(25):
+    for i in range(20):
         env.restart()
         agent.reset()
 
@@ -54,7 +54,7 @@ def main():
     state_dim = 9
     action_dim = 9
 
-    agent = DQNAgent(1, state_dim, action_dim)
+    agent = PGAgent(1, state_dim, action_dim)
 
     for e in range(agent.episodes):
         agent.reset()

@@ -11,7 +11,7 @@ class PGAgent(Agent):
     #mode == 0 Testing
     def __init__(self, mode, state_dim, action_dim):
         super().__init__(state_dim, action_dim, mode)
-        self.episodes = 1000001
+        self.episodes = 100001
         self.gamma = 0.5  # discount rate
 
         self.learning_rate = 0.00002
@@ -19,8 +19,8 @@ class PGAgent(Agent):
         self.one_game_memory = deque(maxlen=9)
 
         self.batching_memory = deque(maxlen=50000)
-        self.batch_size = 16384
-        self.batch_freq = 512
+        self.batch_size = 1024
+        self.batch_freq = 64
 
         self.model_path = "models/PG_model_e_"
         self.save_model_freq = 5000
@@ -29,7 +29,7 @@ class PGAgent(Agent):
 
         self.model = self._build_model()
         if mode == 0:
-            self.trained_model_path = self.model_path+"200.0"
+            self.trained_model_path = self.model_path+"Alpha"
             self.load(self.trained_model_path)
 
     def _build_model(self):
@@ -39,7 +39,7 @@ class PGAgent(Agent):
         model.add(Dense(512, activation='relu', kernel_initializer ='he_uniform'))
         model.add(Dense(512, activation='relu', kernel_initializer ='he_uniform'))
         model.add(Dense(self.action_dim, activation='softmax'))
-        model.compile(optimizer=RMSprop(lr=self.learning_rate),
+        model.compile(optimizer=RMSprop(lr=self.learning_rate, decay=1e-11),
                        loss='binary_crossentropy',
                        metrics=['accuracy'])
         model.summary()

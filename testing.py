@@ -12,6 +12,7 @@ def main():
 
     agent = DQNAgent(0, state_dim, action_dim)
     player = HumanPlayer(state_dim, action_dim)
+    #player = PGAgent(0, state_dim, action_dim)
 
     for e in range(agent.episodes):
         agent.reset()
@@ -33,19 +34,28 @@ def main():
             else:
                 action = player.act(state)
 
-            env.step(action)
+            reward = env.step(action)
 
             next_state = env.getState()
             done = env.terminal
 
             state = next_state
 
+            env.invert_board()
+
             if done:
                 env.render()
+                if(reward == 0):
+                    print("DRAW")
+                else:
+                    if(episode_len % 2 == r):
+                        print("AI WINS")
+                    else:
+                        print("PLAYER WINS")
                 break
 
             episode_len += 1
-            env.invert_board()
+
 
 if __name__ == '__main__':
     main()
